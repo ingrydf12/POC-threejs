@@ -23,51 +23,67 @@ camera.position.z = 3;
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
-controls.dampingFactor = 0.4;
+controls.dampingFactor = 1;
+controls.enablePan = false;
 controls.maxPolarAngle = Math.PI / 2;
+
+//Limitador dos x, y, z da câmera
+/* controls.addEventListener('change', () => {
+    camera.position.x = Math.max(1, Math.min(2.6, camera.position.x));
+    camera.position.y = Math.max(0.4, Math.min(2, camera.position.x));
+    camera.position.z = Math.max(2, Math.min(4, camera.position.z));
+  }); */
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x400987);
 
 // Luz
-// Luz Ambiente (luz suave de fundo)
-const ambientLight = new THREE.AmbientLight(0x404040, 1); // Cor e intensidade
+const ambientLight = new THREE.AmbientLight(0x606060, 0.5); // Luz suave de fundo
 scene.add(ambientLight);
 
-// Luz Direcional (como luz do sol)
-
-
-const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-directionalLight.shadow.mapSize.width = 1024;
-directionalLight.shadow.mapSize.height = 1024;
+// Luz Direcional (habilitar sombras)
+const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+directionalLight.position.set(-3, 5, 3);
+directionalLight.castShadow = true;
+directionalLight.shadow.mapSize.width = 1000;
+directionalLight.shadow.mapSize.height = 1000;
 directionalLight.shadow.camera.near = 0.1;
 directionalLight.shadow.camera.far = 50;
-directionalLight.position.set(5, 5, 2);
-directionalLight.castShadow = true;
+directionalLight.shadow.camera.left = 0;  // Configuração para ajustar o tamanho da sombra
+directionalLight.shadow.camera.right = 5;
+directionalLight.shadow.camera.top = 5;
+directionalLight.shadow.camera.bottom = -5;
 scene.add(directionalLight);
 
-const alt = new THREE.HemisphereLight({ color: 0xffffff, blending: THREE.AdditiveBlending })
-alt.position.set(0, 0, 0);
-alt.castShadow = true;
-alt.groundColor.set(0x000000)
-scene.add(alt)
-
-// Luz de Spot (efeito dramático de "spotlight")
-const light = new THREE.DirectionalLight({ color: 0x175397 });
-light.castShadow = true; // default false
-light.penumbra = 10;
-light.position.set(0, 0.5, 0.5)
-scene.add(light);
-
-const spotLight = new THREE.SpotLight(0xff0000, 2);
-spotLight.position.set(0, 3, 0);
+// Luz de Spot com sombras
+const spotLight = new THREE.SpotLight(0xffaa33, 2);
+spotLight.position.set(0, 5, 2);
 spotLight.angle = Math.PI / 6;
-spotLight.penumbra = 0.1;
+spotLight.penumbra = 0.3;
 spotLight.castShadow = true;
+spotLight.shadow.mapSize.width = 1000;
+spotLight.shadow.mapSize.height = 1000;
 scene.add(spotLight);
 
-const backgroundLight = new THREE.HemisphereLight(0xaaaaff, 0x000000, 0.3); // Cor do céu e cor da terra
-scene.add(backgroundLight);
+// Luz de preenchimento suave (não gera sombra, apenas luz ambiente)
+const pointLight = new THREE.PointLight(0x33aaff, 0.5, 10);
+pointLight.position.set(1, 2, 1);
+pointLight.castShadow = true;
+scene.add(pointLight);
+// Luz Hemisphere ajustada para mais contraste
+const hemisphereLight = new THREE.HemisphereLight(0xaaaaaa, 0x000022, 0.5); // Céu e chão
+scene.add(hemisphereLight);
+
+// Animação para alterar dinamicamente as cores das luzes
+let hue = 0;
+function animateLights() {
+    hue += 0.01;
+    const color = new THREE.Color(`hsl(${(hue * 360) % 360}, 50%, 50%)`);
+    spotLight.color = color;
+    pointLight.color = color;
+    requestAnimationFrame(animateLights);
+}
+animateLights();
 
 // Monitor
 const monitorGeometry = new THREE.BoxGeometry(3, 2, 0.1);
@@ -78,13 +94,30 @@ monitor.castShadow = true;
 monitor.receiveShadow = true;
 scene.add(monitor);
 
+const sup = new THREE.BoxGeometry(1, 0.2, 0.2)
+const sup2= new THREE.BoxGeometry(1, 0.2, 0.2)
+const supMat = new THREE.MeshBasicMaterial({color: 0x444444})
+const suporte1 = new THREE.Mesh(sup, supMat);
+const suporte2 = new THREE.Mesh(sup2, supMat);
+suporte2.castShadow = true;
+suporte2.receiveShadow = true;
+suporte2.position.set(0.5, 0, -0.3);
+suporte2.rotateY(Math.PI/2 - 30.5);
+suporte1.position.set(-0.5, 0, -0.3);
+suporte1.rotateY(Math.PI/2 + 30.5);
+suporte1.castShadow = true;
+suporte1.receiveShadow = true;
+scene.add(suporte1);
+scene.add(suporte2);
+
+
 //Mesa
 const loader = new THREE.TextureLoader();
 const deckGeometry = new THREE.BoxGeometry(4, 0.2, 3);
 const deckMaterial = new THREE.MeshBasicMaterial({ map: loader.load('madeira.png') })
 const deck = new THREE.Mesh(deckGeometry, deckMaterial);
 deck.position.set(0, -0.2, 0.6);
-deck.castShadow = false;
+deck.castShadow = true;
 deck.receiveShadow = true;
 scene.add(deck);
 
@@ -128,6 +161,7 @@ backDiv.style.width = '100%';
 backDiv.style.height = '100%';
 backDiv.style.backgroundColor = 'black';
 backDiv.style.opacity = '0.5';
+backDiv.style.transition = 'opacity 0.5s ease';
 backDiv.style.zIndex = '1';
 backDiv.style.display = 'none';
 
@@ -141,6 +175,7 @@ textDiv.style.fontWeight = '700';
 textDiv.style.fontSize = '14rem';
 textDiv.style.fontFamily = 'Silkscreen, sans-serif';
 textDiv.style.display = 'none';
+textDiv.style.transition = 'opacity 0.5s ease'
 textDiv.style.zIndex = '2';
 textDiv.innerText = 'VAMOS NESSA?';
 document.body.appendChild(backDiv);
@@ -155,7 +190,7 @@ scene.add(key);
 
 
 const keyboardGeometry = new THREE.BoxGeometry(3, 0.2, 1);
-const keyboardMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
+const keyboardMaterial = new THREE.MeshStandardMaterial({ color: 0x101010 });
 const keyboard = new THREE.Mesh(keyboardGeometry, keyboardMaterial);
 keyboard.position.set(0, 0, 1.5);
 scene.add(keyboard);
@@ -170,7 +205,6 @@ window.addEventListener('click', (event) => {
 
     raycaster.setFromCamera(mouse, camera);
 
-    // Detecta interseções
     const intersects = raycaster.intersectObject(key);
 
     if (intersects.length > 0) {
@@ -184,7 +218,6 @@ window.addEventListener('click', (event) => {
         }, 400);
     }
 });
-
 
 // Chão
 const floorGeometry = new THREE.PlaneGeometry(10, 10);
