@@ -38,14 +38,19 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x121212);
 
 // MARK: Luz
+const light = new THREE.AmbientLight( 0x401fb8, 0.3);
+scene.add( light );
 
-// Luz Direcional (habilitar sombras)
+// Luz Direcional
+const sunLight = new THREE.SpotLight(0x60a4bf, 3, 200000, Math.PI/8);
+sunLight.position.set(8, 2, 0.5)
+sunLight.penumbra = 1;
 
 // Luz de Spot com sombras
-const spotLight = new THREE.SpotLight(0xba204e, 1);
-spotLight.position.set(3, 4, 0.7);
-spotLight.angle = Math.PI / 6;
-spotLight.penumbra = 1.0;
+const spotLight = new THREE.SpotLight(0xba204e, 2);
+spotLight.position.set(1, 4, 5);
+spotLight.angle = Math.PI / 10;
+spotLight.penumbra = 1;
 spotLight.castShadow = true;
 spotLight.shadow.mapSize.width = 200;
 spotLight.shadow.mapSize.height = 200;
@@ -99,9 +104,8 @@ scene.add(suporte2);
 //Mesa
 const loader = new THREE.TextureLoader();
 const deckGeometry = new THREE.BoxGeometry(10, 0.2, 3);
-const deckMaterial = new THREE.MeshPhongMaterial({color: 0xfafafa})
-/* const deckMaterial = new THREE.MeshPhongMaterial({ map: loader.load('madeira.png') })
- */const deck = new THREE.Mesh(deckGeometry, deckMaterial);
+const deckMaterial = new THREE.MeshStandardMaterial({ map: loader.load('paper.jpeg') })
+const deck = new THREE.Mesh(deckGeometry, deckMaterial);
 deck.position.set(0, -0.2, 0.6);
 deck.castShadow = true;
 deck.receiveShadow = true;
@@ -138,23 +142,43 @@ base.receiveShadow = true;
 scene.add(base);
 
 //Suporte Abajur
-const luzAbajur = new THREE.PointLight(0xd6ad1a, 4, 3);
-luzAbajur.position.set(-4, 2.5, 0);
-luzAbajur.penumbra =1;
-luzAbajur.castShadow = true;
-scene.add(luzAbajur);
-
 const geometry = new THREE.CylinderGeometry(0.1, 0.1, 3, 32, 3); 
 const circleGeo = new THREE.CylinderGeometry(0.3, 1, 1, 32, 3, 1, false); 
-const material = new THREE.MeshPhongMaterial( {color: 0x7d3a10} ); 
-const mat = new THREE.MeshLambertMaterial( {color: 0x7d3a10} ); 
+const material = new THREE.MeshLambertMaterial( {color: 0x7d3a10} ); 
+const mat = new THREE.MeshStandardMaterial( {color: 0x7d3a10, roughness: 1.5} ); 
 const cylinder = new THREE.Mesh( geometry, material );
 const circleCyl = new THREE.Mesh(circleGeo, mat);
-
+cylinder.castShadow = true;
 circleCyl.position.set(-4,2.5,0);
 cylinder.position.set(-4, 1, 0);
 scene.add(cylinder);
 scene.add(circleCyl);
+
+//Luz Abajur
+const luzAbajur = new THREE.SpotLight(0xd6ad1a, 1.2, 5, Math.PI / 6, 0.5, 0.5);
+luzAbajur.position.set(-4, 2.5, 0);
+
+const target = new THREE.Object3D();
+target.position.set(-4, 0, 0);
+scene.add(target);
+
+luzAbajur.target = target;
+scene.add(luzAbajur);
+
+// === EFEITO VISUAL: LUZ INTERNA DO ABAJUR ===
+const emissiveMaterial = new THREE.MeshStandardMaterial({
+  color: 0xd6ad1a,
+  emissive: 0xd6ad1a, 
+  emissiveIntensity: 1.5,
+  roughness: 0.8,
+});
+
+const emissiveSphere = new THREE.Mesh(
+  new THREE.SphereGeometry(0.15, 16, 16),
+  emissiveMaterial
+);
+emissiveSphere.position.set(-4, 2.5, 0);
+scene.add(emissiveSphere);
 
 
 // MARK: Texto 2D
