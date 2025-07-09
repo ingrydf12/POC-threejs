@@ -1,278 +1,352 @@
-import * as THREE from 'three';
-import { OrbitControls } from 'jsm/controls/OrbitControls.js';
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.131/build/three.module.js";
+import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.131/examples/jsm/controls/OrbitControls.js";
 
-//Tamanhos dentro da web
 const w = window.innerWidth;
 const h = window.innerHeight;
 
-const renderer = new THREE.WebGLRenderer({ antialias: true })
+const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(w, h);
-renderer.shadowMap.enabled = true
-renderer.shadowMap.type = THREE.PCFSoftShadowMap
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+renderer.outputEncoding = THREE.sRGBEncoding;
 document.body.appendChild(renderer.domElement);
 
-// Câmera
-const fov = 100; //O quão perto está da câmera
-const aspect = w / h; //Tamanho?
+const fov = 75;
+const aspect = w / h;
 const near = 0.1;
-const far = 10;
+const far = 100;
 const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-camera.position.x = 0;
-camera.position.y = 0.4;
-camera.position.z = 3;
+camera.position.set(0, 1.5, 3.5);
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
-controls.dampingFactor = 1;
+controls.dampingFactor = 0.08;
 controls.enablePan = false;
-controls.maxPolarAngle = Math.PI / 2;
-
-controls.minDistance = 2;
-controls.maxDistance = 4;
-
+controls.minDistance = 1.8;
+controls.maxDistance = 4.5;
 controls.minPolarAngle = 0;
-controls.maxPolarAngle = Math.PI / 2;
+controls.maxPolarAngle = Math.PI / 2 - 0.1;
 
-//Limitador dos x, y, z da câmera
-controls.addEventListener('change', () => {
-    camera.position.x = Math.max(1, Math.min(2.6, camera.position.x));
-    camera.position.y = Math.max(0.4, Math.min(2, camera.position.y));
-    camera.position.z = Math.max(2, Math.min(4, camera.position.z));
+controls.addEventListener("change", () => {
+    const zoomProgress = (controls.maxDistance - controls.getDistance()) / (controls.maxDistance - controls.minDistance);
+    camera.fov = fov - (fov * 0.4 * zoomProgress);
+    camera.updateProjectionMatrix();
 });
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x121212);
+scene.background = new THREE.Color(0x020202);
 
-// MARK: Luz
-const light = new THREE.AmbientLight( 0x401fb8, 0.3);
-scene.add( light );
+const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+scene.add(ambientLight);
 
-// Luz Direcional
-const sunLight = new THREE.SpotLight(0x60a4bf, 3, 200000, Math.PI/8);
-sunLight.position.set(8, 2, 0.5)
-sunLight.penumbra = 1;
+const mainDirectionalLight = new THREE.DirectionalLight(0xffffff, 0.1);
+mainDirectionalLight.position.set(5, 8, 3);
+mainDirectionalLight.castShadow = true;
+mainDirectionalLight.shadow.mapSize.width = 2048;
+mainDirectionalLight.shadow.mapSize.height = 2048;
+mainDirectionalLight.shadow.camera.left = -5;
+mainDirectionalLight.shadow.camera.right = 5;
+mainDirectionalLight.shadow.camera.top = 5;
+mainDirectionalLight.shadow.camera.bottom = -5;
+mainDirectionalLight.shadow.camera.near = 0.1;
+mainDirectionalLight.shadow.camera.far = 20;
+mainDirectionalLight.shadow.bias = -0.0005;
+scene.add(mainDirectionalLight);
 
-// Luz de Spot com sombras
-const spotLight = new THREE.SpotLight(0xba204e, 2);
-spotLight.position.set(1, 4, 5);
-spotLight.angle = Math.PI / 10;
-spotLight.penumbra = 1;
-spotLight.castShadow = true;
-spotLight.shadow.mapSize.width = 200;
-spotLight.shadow.mapSize.height = 200;
-scene.add(spotLight);
+const monitorSpotLight = new THREE.SpotLight(0xb82e43, 1.0, 10, Math.PI / 4, 1, 1);
+monitorSpotLight.position.set(0.5, 4, 3);
+monitorSpotLight.castShadow = true;
+monitorSpotLight.shadow.mapSize.width = 1024;
+monitorSpotLight.shadow.mapSize.height = 1024;
+monitorSpotLight.shadow.bias = -0.0001;
+scene.add(monitorSpotLight);
 
-const spot2 = new THREE.SpotLight(0xffffff, 0.3);
-spot2.position.set(0, 5, 0.7);
-spot2.angle = Math.PI / 8;
-spot2.penumbra = 0.2;
-spot2.castShadow = true;
-spot2.shadow.mapSize.width = 1000;
-spot2.shadow.mapSize.height = 1000;
-scene.add(spot2);
-
-// Luz de preenchimento suave (não gera sombra, apenas luz ambiente)
-const pointLight = new THREE.PointLight(0xb51246, 0.5, 5);
-pointLight.position.set(0, 2, 1);
-pointLight.penumbra =1;
-pointLight.castShadow = true;
-scene.add(pointLight);
-// Luz Hemisphere ajustada para mais contraste
-const hemisphereLight = new THREE.HemisphereLight(0xaaaaaa, 0x000022, 0.5); // Céu e chão
-scene.add(hemisphereLight);
-
+// Luz do Abajur (SpotLight)
+const lampLight = new THREE.SpotLight(0xffcc99, 0.8, 5, Math.PI / 5, 0.5, 1);
+lampLight.position.set(-1.5, 1.4, -0.5);
+const lampTarget = new THREE.Object3D();
+lampTarget.position.set(-1.5, 0, -0.5);
+scene.add(lampTarget);
+lampLight.target = lampTarget;
+lampLight.castShadow = true;
+lampLight.shadow.mapSize.width = 512;
+lampLight.shadow.mapSize.height = 512;
+lampLight.shadow.bias = -0.0001;
+scene.add(lampLight);
 
 // Monitor
-const monitorGeometry = new THREE.BoxGeometry(4, 2, 0.1);
-const monitorMaterial = new THREE.MeshStandardMaterial({ color: 0x151515 });
+const monitorGeometry = new THREE.BoxGeometry(2, 1.2, 0.1);
+
+const monitorMaterial = new THREE.MeshStandardMaterial({
+  color: 0x151515,
+  metalness: 0.7,
+  roughness: 0.2,
+  emissive: 0x111111,
+  emissiveIntensity: 0.3,
+  transparent: true,
+});
+
 const monitor = new THREE.Mesh(monitorGeometry, monitorMaterial);
-monitor.position.set(0, 1.5, -0.5);
+monitor.position.set(0, 0.9, -0.9);
 monitor.castShadow = true;
 monitor.receiveShadow = true;
 scene.add(monitor);
 
-const sup = new THREE.BoxGeometry(1, 0.2, 0.2)
-const sup2= new THREE.BoxGeometry(1, 0.2, 0.2)
+// Base do Monitor
+const standGeometry = new THREE.BoxGeometry(0.3, 0.5, 0.1);
+const standMaterial = new THREE.MeshStandardMaterial({ color: 0x151515 });
+const monitorStand = new THREE.Mesh(standGeometry, standMaterial);
+monitorStand.position.set(0, 0.3, -0.9);
+monitorStand.castShadow = true;
+monitorStand.receiveShadow = true;
+scene.add(monitorStand);
+
+const sup = new THREE.BoxGeometry(0.6, 0.2, 0.2)
+const sup2= new THREE.BoxGeometry(0.6, 0.2, 0.2)
 const supMat = new THREE.MeshStandardMaterial({color: 0x151515})
 const suporte1 = new THREE.Mesh(sup, supMat);
 const suporte2 = new THREE.Mesh(sup2, supMat);
 suporte2.castShadow = true;
 suporte2.receiveShadow = true;
-suporte2.position.set(0.5, 0, -0.3);
+suporte2.position.set(0.3, 0, -0.8);
 suporte2.rotateY(Math.PI/2 - 30.5);
-suporte1.position.set(-0.5, 0, -0.3);
+suporte1.position.set(-0.3, 0, -0.8);
 suporte1.rotateY(Math.PI/2 + 30.5);
 suporte1.castShadow = true;
 suporte1.receiveShadow = true;
 scene.add(suporte1);
 scene.add(suporte2);
 
-//Mesa
+// Mesa
 const loader = new THREE.TextureLoader();
-const deckGeometry = new THREE.BoxGeometry(10, 0.2, 3);
-const deckMaterial = new THREE.MeshStandardMaterial({ map: loader.load('paper.jpeg') })
+
+const metalColor = loader.load("textures/metalColor.jpg");
+const metalNormal = loader.load("textures/metal.png");
+const metalRoughness = loader.load("textures/metalRough.png");
+
+const deckGeometry = new THREE.BoxGeometry(4, 0.2, 2);
+const deckMaterial = new THREE.MeshStandardMaterial({
+    map: metalColor,
+    normalMap: metalNormal,
+    roughnessMap: metalRoughness,
+    metalness: 1.0,
+    roughness: 0,
+    envMapIntensity: 1.0,
+});
+
 const deck = new THREE.Mesh(deckGeometry, deckMaterial);
-deck.position.set(0, -0.2, 0.6);
+deck.position.set(0, -0.1, 0);
 deck.castShadow = true;
 deck.receiveShadow = true;
 scene.add(deck);
 
 // Tela do Monitor
-const video = document.createElement('video');
-video.src = 'matrix.mp4';
+const video = document.createElement("video");
+video.src = "matrix.mp4";
 video.load();
 video.play();
 video.loop = true;
 video.muted = true;
-video.crossOrigin = 'anonymous';
+video.crossOrigin = "anonymous";
 
 video.oncanplaythrough = function () {
     const videoTexture = new THREE.VideoTexture(video);
-    const screenGeometry = new THREE.PlaneGeometry(3.8, 1.7);
+    const screenGeometry = new THREE.PlaneGeometry(1.9, 1.05);
     const screenMaterial = new THREE.MeshBasicMaterial({ map: videoTexture });
     const screen = new THREE.Mesh(screenGeometry, screenMaterial);
-    screen.position.set(0, 1.5, -0.4);
-    screen.castShadow = false;
-    screen.receiveShadow = false;
-
+    screen.position.set(0, 0.9, -0.84);
     scene.add(screen);
 };
 
-// Base do Computador
-const baseGeometry = new THREE.BoxGeometry(0.5, 1, 0.1);
-const baseMaterial = new THREE.MeshStandardMaterial({ color: 0x151515 });
-const base = new THREE.Mesh(baseGeometry, baseMaterial);
-base.position.set(0, 0.2, -0.5);
-base.castShadow = true;
-base.receiveShadow = true;
-scene.add(base);
+// --- Texto 2D ---
+const textDiv = document.createElement("div");
+const backDiv = document.createElement("div");
 
-//Suporte Abajur
-const geometry = new THREE.CylinderGeometry(0.1, 0.1, 3, 32, 3); 
-const circleGeo = new THREE.CylinderGeometry(0.3, 1, 1, 32, 3, 1, false); 
-const material = new THREE.MeshLambertMaterial( {color: 0x7d3a10} ); 
-const mat = new THREE.MeshStandardMaterial( {color: 0x7d3a10, roughness: 1.5} ); 
-const cylinder = new THREE.Mesh( geometry, material );
-const circleCyl = new THREE.Mesh(circleGeo, mat);
-cylinder.castShadow = true;
-circleCyl.position.set(-4,2.5,0);
-cylinder.position.set(-4, 1, 0);
-scene.add(cylinder);
-scene.add(circleCyl);
+backDiv.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+    z-index: 10;
+    pointer-events: none;
+`;
 
-//Luz Abajur
-const luzAbajur = new THREE.SpotLight(0xd6ad1a, 1.2, 5, Math.PI / 6, 0.5, 0.5);
-luzAbajur.position.set(-4, 2.5, 0);
-
-const target = new THREE.Object3D();
-target.position.set(-4, 0, 0);
-scene.add(target);
-
-luzAbajur.target = target;
-scene.add(luzAbajur);
-
-// === EFEITO VISUAL: LUZ INTERNA DO ABAJUR ===
-const emissiveMaterial = new THREE.MeshStandardMaterial({
-  color: 0xd6ad1a,
-  emissive: 0xd6ad1a, 
-  emissiveIntensity: 1.5,
-  roughness: 0.8,
-});
-
-const emissiveSphere = new THREE.Mesh(
-  new THREE.SphereGeometry(0.15, 16, 16),
-  emissiveMaterial
-);
-emissiveSphere.position.set(-4, 2.5, 0);
-scene.add(emissiveSphere);
-
-
-// MARK: Texto 2D
-const textDiv = document.createElement('div');
-const backDiv = document.createElement('div');
-backDiv.style.position = 'fixed';
-backDiv.style.top = '0';
-backDiv.style.left = '0';
-backDiv.style.width = '100%';
-backDiv.style.height = '100%';
-backDiv.style.backgroundColor = 'black';
-backDiv.style.opacity = '0.5';
-backDiv.style.transition = 'opacity 0.5s ease';
-backDiv.style.zIndex = '1';
-backDiv.style.display = 'none';
-
-textDiv.style.position = 'absolute';
-textDiv.style.color = 'white';
-textDiv.style.top = '15%';
-textDiv.style.left = '5%';
-textDiv.style.maxWidth = '10%'
-textDiv.style.height = '500px'
-textDiv.style.fontWeight = '700';
-textDiv.style.fontSize = '14rem';
-textDiv.style.fontFamily = 'Silkscreen, sans-serif';
-textDiv.style.display = 'none';
-textDiv.style.transition = 'opacity 0.5s ease'
-textDiv.style.zIndex = '2';
-textDiv.innerText = 'VAMOS NESSA?';
+textDiv.style.cssText = `
+    position: absolute;
+    color: #00ff00;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 5rem;
+    font-weight: 700;
+    font-family: 'Silkscreen', cursive;
+    text-shadow: 0 0 10px #00ff00;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+    z-index: 11;
+    pointer-events: none;
+    text-align: center;
+    white-space: nowrap;
+`;
+textDiv.innerText = "VAMOS NESSA?";
 document.body.appendChild(backDiv);
 document.body.appendChild(textDiv);
 
-// Tecla + Teclado
-const keyGeometry = new THREE.BoxGeometry(1, 0.1, 0.2);
-const keyGeo = new THREE.BoxGeometry(0.2, 0.1, 0.2);
+// --- Teclado ---
+const keyboardMaterial = new THREE.MeshStandardMaterial({
+    color: 0x303030,
+    roughness: 0.7,
+    metalness: 0.2,
+});
 
-const keyMaterial = new THREE.MeshPhongMaterial({ color: 0x171717 });
-const key = new THREE.Mesh(keyGeometry, keyMaterial);
-const keyG = new THREE.Mesh(keyGeo, keyMaterial);
-keyG.position.set(-1, 0.1, 1.8);
-key.position.set(0, 0.1, 1.8);
-scene.add(key);
-scene.add(keyG);
+const keyMaterial = new THREE.MeshStandardMaterial({
+    color: 0x171717,
+    roughness: 0.6,
+    metalness: 0.1,
+});
+const pressedKeyMaterial = new THREE.MeshStandardMaterial({
+    color: 0x007bff,
+    emissive: 0x007bff,
+    emissiveIntensity: 0.3,
+    roughness: 0.6,
+    metalness: 0.1,
+});
 
-const keyboardGeometry = new THREE.BoxGeometry(3, 0.2, 1);
-const keyboardMaterial = new THREE.MeshStandardMaterial({ color: 0x404040 });
-const keyboard = new THREE.Mesh(keyboardGeometry, keyboardMaterial);
-keyboard.position.set(0, 0, 1.5);
-scene.add(keyboard);
+const keyWidth = 0.1;
+const keyHeight = 0.05;
+const keyDepth = 0.11;
+const spacingX = 0.02;
+const spacingZ = 0.02;
 
-// MARK: Interagir teclado
+const numKeysPerRow = 12;
+const numAlphaRows = 4;
+
+const keyboardWidth = (numKeysPerRow * keyWidth) + ((numKeysPerRow - 1) * spacingX) + (spacingX * 2) + 0.1;
+const keyboardDepth = (numAlphaRows * keyDepth) + ((numAlphaRows - 1) * spacingZ) + keyDepth + spacingZ + (spacingZ * 2);
+
+// Base do Teclado
+const keyboardBaseHeight = 0.1;
+const keyboardBaseGeometry = new THREE.BoxGeometry(keyboardWidth, keyboardBaseHeight, keyboardDepth);
+const keyboardBase = new THREE.Mesh(keyboardBaseGeometry, keyboardMaterial);
+keyboardBase.position.set(0, -0.04, 0.4);
+keyboardBase.castShadow = true;
+keyboardBase.receiveShadow = true;
+scene.add(keyboardBase);
+
+const allKeys = [];
+
+const alphaKeysStart_Z = keyboardBase.position.z + (keyboardBase.geometry.parameters.depth / 2) - (keyDepth / 2) - spacingZ;
+const zOffset = 0.15;
+
+for (let row = 0; row < numAlphaRows; row++) {
+    const rowWidth = (numKeysPerRow * keyWidth) + ((numKeysPerRow - 1) * spacingX);
+    const rowStart_X = keyboardBase.position.x - (rowWidth / 2) + (keyWidth / 2);
+
+    for (let col = 0; col < numKeysPerRow; col++) {
+        const keyGeometry = new THREE.BoxGeometry(keyWidth, keyHeight, keyDepth);
+        const key = new THREE.Mesh(keyGeometry, keyMaterial);
+
+        key.position.x = rowStart_X + col * (keyWidth + spacingX);
+        key.position.y = keyboardBase.position.y + keyboardBaseHeight / 2 + keyHeight / 2 + 0.01;
+        key.position.z = row * (keyDepth + spacingZ) + zOffset;
+
+        key.castShadow = true;
+        key.receiveShadow = true;
+        key.originalY = key.position.y;
+        key.originalMaterial = keyMaterial;
+
+        scene.add(key);
+        allKeys.push(key);
+    }
+}
+
+const spacebarWidth = keyWidth * 6 + spacingX * 5;
+const spacebarHeight = keyHeight;
+const spacebarDepth = keyDepth;
+
+const spacebarGeometry = new THREE.BoxGeometry(spacebarWidth, spacebarHeight, spacebarDepth);
+const spacebar = new THREE.Mesh(spacebarGeometry, keyMaterial);
+
+const lastAlphaRow_Z = alphaKeysStart_Z - (numAlphaRows - 1) * (keyDepth + spacingZ);
+spacebar.position.z = lastAlphaRow_Z + keyboardBase.position.z;
+
+spacebar.position.x = keyboardBase.position.x;
+spacebar.position.y = keyboardBase.position.y + keyboardBaseHeight / 2 + spacebarHeight / 2 + 0.01;
+
+spacebar.castShadow = true;
+spacebar.receiveShadow = true;
+spacebar.originalY = spacebar.position.y;
+spacebar.originalMaterial = keyMaterial;
+
+scene.add(spacebar);
+allKeys.push(spacebar);
+
+// --- Interagir teclado ---
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
-window.addEventListener('click', (event) => {
+window.addEventListener("click", (event) => {
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
     raycaster.setFromCamera(mouse, camera);
 
-    const intersects = raycaster.intersectObject(key);
+    const intersects = raycaster.intersectObjects(allKeys);
 
     if (intersects.length > 0) {
-        key.position.y -= 0.02;
-        backDiv.style.display = 'block';
-        textDiv.style.display = 'block';
-        
+        const clickedKey = intersects[0].object;
+
+        clickedKey.position.y -= 0.02;
+        clickedKey.material = pressedKeyMaterial;
+
+        backDiv.style.display = "block";
+        textDiv.style.display = "block";
+        backDiv.style.opacity = "0.7";
+        textDiv.style.opacity = "1";
 
         setTimeout(() => {
-            key.position.y += 0.05;
-        }, 400);
+            clickedKey.position.y = clickedKey.originalY;
+            clickedKey.material = clickedKey.originalMaterial;
+
+            backDiv.style.opacity = "0";
+            textDiv.style.opacity = "0";
+            setTimeout(() => {
+                backDiv.style.display = "none";
+                textDiv.style.display = "none";
+            }, 300);
+        }, 1500);
     }
 });
 
 // Chão
-const floorGeometry = new THREE.PlaneGeometry(10, 10);
-const floorMaterial = new THREE.ShadowMaterial({ color: 0x000000, opacity: 0.5 });
+const floorGeometry = new THREE.PlaneGeometry(20, 20);
+const floorMaterial = new THREE.MeshStandardMaterial({
+    color: 0x181818,
+    roughness: 0.8,
+    metalness: 0.1,
+});
 const floor = new THREE.Mesh(floorGeometry, floorMaterial);
 floor.rotation.x = -Math.PI / 2;
-floor.position.y = -0.5;
+floor.position.y = -0.15;
 floor.receiveShadow = true;
 scene.add(floor);
 
 function animate() {
     requestAnimationFrame(animate);
-
     renderer.render(scene, camera);
     controls.update();
 }
 
 animate();
+
+window.addEventListener("resize", () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
