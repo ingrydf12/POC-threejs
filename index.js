@@ -27,13 +27,19 @@ controls.dampingFactor = 1;
 controls.enablePan = false;
 controls.maxPolarAngle = Math.PI / 2;
 
+controls.minDistance = 2;
+controls.maxDistance = 4;
+
+controls.minPolarAngle = 0;
+controls.maxPolarAngle = Math.PI / 2;
+
 //Limitador dos x, y, z da câmera
-/* controls.addEventListener('change', () => {
+controls.addEventListener('change', () => {
     camera.position.x = Math.max(1, Math.min(2.6, camera.position.x));
-    camera.position.y = Math.max(0.4, Math.min(2, camera.position.x));
+    camera.position.y = Math.max(0.4, Math.min(2, camera.position.y));
     camera.position.z = Math.max(2, Math.min(4, camera.position.z));
-  });
- */
+});
+
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x121212);
 
